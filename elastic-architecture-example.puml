@@ -1,0 +1,33 @@
+@startuml
+left to right direction
+skinparam DefaultTextAlignment center
+
+!include <archimate/Archimate>
+
+title ArchiMate Overview: Elastic System Monitoring Tool - Input Sources & Telemetry Flow
+
+' --- TECHNOLOGY & APPLICATION LAYERS (ELASTIC STACK) ---
+rectangle "Elastic Monitoring Platform" {
+    Technology_Node(elasticStack, "Elasticsearch & Kibana", "Storage, Indexing & Visualization")
+    Technology_SystemSoftware(elasticAgent, "Elastic Agent & Beats", "Metric & Packet Collection")
+    Application_Component(apmServer, "APM Server & RUM", "Application & End-User Tracing")
+}
+
+' --- INPUT SOURCES (PASSIVE STRUCTURE / INFRASTRUCTURE) ---
+rectangle "Telemetry Input Sources" {
+    Technology_Device(netSource, "Network Infrastructure", "Switches, Routers, Firewalls (SNMP / Flows)")
+    Technology_Device(hostSource, "Hosting Infrastructure", "VMs, Physical Servers, Containers")
+    Application_Component(appSource, "Application Runtimes", "Microservices & APIs (Metrics / Traces)")
+    Business_Actor(userSource, "End Users / Browsers", "Client Sessions & Page Loads")
+}
+
+' --- RELATIONSHIPS & DATA FLOW ---
+Rel_Flow_Right(netSource, elasticAgent, "Packet/SNMP Metrics")
+Rel_Flow_Right(hostSource, elasticAgent, "OS/Hardware Metrics")
+Rel_Flow_Right(appSource, apmServer, "App Throughput & Errors")
+Rel_Flow_Right(userSource, apmServer, "RUM Performance Data")
+
+Rel_Serving_Up(elasticAgent, elasticStack, "Ingests Telemetry")
+Rel_Serving_Up(apmServer, elasticStack, "Ingests APM Traces")
+
+@enduml
