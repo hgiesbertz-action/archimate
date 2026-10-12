@@ -1,0 +1,90 @@
+@startuml
+skinparam roundcorner 5
+skinparam shadowing false
+skinparam Handwritten false
+
+' --- OFFICIAL ARCHIMATE COLOR PALETTE ---
+!define BUSINESS_COLOR #FFF9C4
+!define APPLICATION_COLOR #B2EBF2
+!define TECHNOLOGY_COLOR #C8E6C9
+
+skinparam Rectangle {
+    BackgroundColor<<business-interface>> BUSINESS_COLOR
+    BackgroundColor<<application-component>> APPLICATION_COLOR
+    BackgroundColor<<data-object>> APPLICATION_COLOR
+    BackgroundColor<<node>> TECHNOLOGY_COLOR
+    BackgroundColor<<device>> TECHNOLOGY_COLOR
+    BackgroundColor<<system-software>> TECHNOLOGY_COLOR
+    BackgroundColor<<artifact>> TECHNOLOGY_COLOR
+    
+    BorderColor #455A64
+    FontColor #212121
+}
+
+skinparam Package {
+    BackgroundColor #E8F5E9
+    BorderColor #81C784
+    FontColor #2E7D32
+}
+
+title Star Topology: Elastic Centralized Monitoring Hub
+
+' =========================================================================
+' CENTRAL HUB & VISUALIZATION
+' =========================================================================
+rectangle "Elasticsearch Cluster\n<<node>>" as es_cluster <<node>>
+rectangle "Kibana Dashboards\n<<business-interface>>" as kibana <<business-interface>>
+
+' =========================================================================
+' INGESTION AGENTS / INTERMEDIARIES
+' =========================================================================
+rectangle "Elastic APM Server\n<<application-component>>" as apm <<application-component>>
+rectangle "Elastic Agent\n(SNMP / NetFlow)\n<<system-software>>" as elastic_agent <<system-software>>
+rectangle "Elastic Agent\n(M365 Integration)\n<<system-software>>" as m365_agent <<system-software>>
+
+' =========================================================================
+' DATA SOURCES (SPOKES OF THE STAR)
+' =========================================================================
+
+' 1. SAP Suite (Top Left)
+rectangle "SAP S/4HANA\n<<application-component>>" as sap <<application-component>>
+
+' 2. Network Infrastructure (Bottom Left)
+package "Network Infrastructure" {
+    rectangle "Core Router\n<<device>>" as router <<device>>
+    rectangle "Edge Switch\n<<device>>" as switch <<device>>
+}
+
+' 3. M365 Cloud Metrics (Top Right)
+rectangle "Microsoft 365\n<<application-component>>" as m365 <<application-component>>
+
+' 4. Custom App with SNMP (Bottom Right)
+rectangle "Custom Application\n<<application-component>>" as custom_app <<application-component>>
+
+
+' =========================================================================
+' STAR TOPOLOGY CONNECTIONS (INWARD TO ELASTICSEARCH)
+' =========================================================================
+
+' SAP Ingestion Path
+sap -down-> apm : "Traces"
+apm -down-> es_cluster : "Indexes"
+
+' Network Ingestion Path
+router -right-> elastic_agent : "SNMP"
+switch -right-> elastic_agent : "Traps"
+elastic_agent -right-> es_cluster : "Bulk Upload"
+
+' M365 Ingestion Path
+m365 -down-> m365_agent : "Graph API"
+m365_agent -down-> es_cluster : "Logs/Metrics"
+
+' Custom App Ingestion Path (Reusing the SNMP Elastic Agent)
+custom_app -left-> elastic_agent : "SNMP Polling"
+
+' =========================================================================
+' OUTPUT PATH
+' =========================================================================
+es_cluster -up-> kibana : "Queries Data"
+
+@endum

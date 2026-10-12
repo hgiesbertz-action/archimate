@@ -1,0 +1,111 @@
+@startuml
+' Force clean horizontal (left-to-right) layout orientation
+left to right direction
+
+skinparam roundcorner 5
+skinparam shadowing false
+skinparam Handwritten false
+
+' --- OFFICIAL ARCHIMATE COLOR PALETTE ---
+!define APPLICATION_COLOR #B2EBF2
+!define TECHNOLOGY_COLOR #C8E6C9
+!define CLOUD_COLOR #E1BEE7
+
+skinparam Rectangle {
+    BackgroundColor<<application-component>> APPLICATION_COLOR
+    BackgroundColor<<data-object>> APPLICATION_COLOR
+    BackgroundColor<<node>> TECHNOLOGY_COLOR
+    BackgroundColor<<device>> TECHNOLOGY_COLOR
+    BackgroundColor<<system-software>> TECHNOLOGY_COLOR
+    BackgroundColor<<artifact>> TECHNOLOGY_COLOR
+    BackgroundColor<<cloud-node>> CLOUD_COLOR
+    
+    BorderColor #455A64
+    FontColor #212121
+}
+
+skinparam Package {
+    BackgroundColor #F5F5F5
+    BorderColor #B0BEC5
+    FontColor #37474F
+}
+
+title Network Monitoring Architecture: Dual-Pathway Telemetry to Microsoft Sentinel SIEM
+
+' =========================================================================
+' 1. SHARED INFRASTRUCTURE DATA SOURCES (LEFT)
+' =========================================================================
+package "Store Infrastructure" {
+    rectangle "FortiGate Edge" as store_edge
+    cloud "Store LAN" as store_lan
+    circle "test" as test
+    node "test2" as test2
+    frame "test3" as test3
+    database "test4" as test4
+    queue "test5" as test5
+    stack "test6" as test6 
+    storage "test7" as test7
+    card "test8" as test8
+    artifact "test9" as test9
+    actor "test10" as test10
+    collections "test11" as test11
+    boundary "test12" as test12
+    
+}
+
+package "DC Infrastructure" {
+    rectangle "FortiGate Edge" as dc_edge
+    rectangle "Distribution LAN" as dc_lan
+}
+
+package "HQ Infrastructure" {
+    rectangle "FortiGate Edge" as hq_edge
+    rectangle "HQ LAN" as hq_lan
+}
+
+' =========================================================================
+' 2. INGESTION & MONITORING PIPELINES (CENTER)
+' =========================================================================
+
+package "PATHWAY A: Aruba & Vendor Repo" #E8F5E9 {
+    rectangle "Aruba Central\n(Cloud Engine)\n<<system-software>>" as aruba_central <<system-software>>
+    rectangle "Vendor Logging Tool\n(Central Repo)\n<<system-software>>" as vendor_repo <<system-software>>
+    rectangle "Line Availability Metrics\n<<data-object>>" as line_metrics <<data-object>>
+}
+
+package "PATHWAY B: Fortinet Local Fabric" #E0F2F1 {
+    rectangle "FortiManager Appliance\n<<device>>" as fortimanager <<device>>
+    rectangle "FortiAnalyzer Appliance\n<<device>>" as fortianalyzer <<device>>
+    rectangle "Security & Fabric Logs\n<<artifact>>" as forti_logs <<artifact>>
+}
+
+' =========================================================================
+' 3. CENTRAL SIEM STORAGE & ANALYTICS (RIGHT)
+' =========================================================================
+package "Cloud Analytics & SIEM Layer" {
+    rectangle "Microsoft Sentinel SIEM\n<<cloud-node>>" as sentinel <<cloud-node>>
+}
+
+' =========================================================================
+' RELATIONSHIPS & DATA FLOWS (LEFT TO RIGHT)
+' =========================================================================
+
+' Pathway A Data Flows
+store_edge --> aruba_central : "Syslog / Telemetry"
+store_lan --> aruba_central : "LAN Polling"
+aruba_central --> vendor_repo : "Forward Events"
+vendor_repo ..> line_metrics : "Generates"
+
+' Pathway B Data Flows
+store_edge --> fortimanager : "Fabric Sync"
+store_lan --> fortianalyzer : "Raw Logs"
+dc_lan --> fortianalyzer : "Syslog"
+hq_lan --> fortianalyzer : "Syslog"
+fortimanager --> fortianalyzer : "Orchestration Logs"
+fortianalyzer ..> forti_logs : "Aggregates"
+
+' SIEM Ingestion Pipelines (Forwarding to Azure Cloud)
+vendor_repo --> sentinel : "Log Forwarder / API"
+fortianalyzer --> sentinel : "CEF / Syslog Forwarder"
+
+@endum

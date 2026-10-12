@@ -1,0 +1,84 @@
+@startuml
+' Force horizontal (left-to-right) layout orientation
+left to right direction
+
+skinparam roundcorner 5
+skinparam shadowing false
+skinparam Handwritten false
+
+' --- OFFICIAL ARCHIMATE COLOR PALETTE ---
+!define BUSINESS_COLOR #FFF9C4
+!define APPLICATION_COLOR #B2EBF2
+!define TECHNOLOGY_COLOR #C8E6C9
+
+skinparam Rectangle {
+    BackgroundColor<<business-interface>> BUSINESS_COLOR
+    BackgroundColor<<application-component>> APPLICATION_COLOR
+    BackgroundColor<<data-object>> APPLICATION_COLOR
+    BackgroundColor<<node>> TECHNOLOGY_COLOR
+    BackgroundColor<<device>> TECHNOLOGY_COLOR
+    BackgroundColor<<system-software>> TECHNOLOGY_COLOR
+    BackgroundColor<<artifact>> TECHNOLOGY_COLOR
+    
+    BorderColor #455A64
+    FontColor #212121
+}
+
+skinparam Package {
+    BackgroundColor #E8F5E9
+    BorderColor #81C784
+    FontColor #2E7D32
+}
+
+title Elastic Monitoring Architecture (SAP & Network Infrastructure to Kibana)
+
+' =========================================================================
+' 1. SOURCE LAYER (LEFT)
+' =========================================================================
+rectangle "SAP S/4HANA\n<<application-component>>" as sap <<application-component>>
+rectangle "SAP Metrics\n(IDoc, RFC, Memory)\n<<data-object>>" as sap_metrics <<data-object>>
+
+package "Network Infrastructure <<group>>" {
+    rectangle "Core Router\n<<device>>" as router <<device>>
+    rectangle "Edge Switch\n<<device>>" as switch <<device>>
+}
+rectangle "Network Data\n(Syslog, SNMP OIDs)\n<<artifact>>" as network_logs <<artifact>>
+
+' =========================================================================
+' 2. INGESTION LAYER (CENTER-LEFT)
+' =========================================================================
+rectangle "Elastic APM Server\n<<application-component>>" as apm <<application-component>>
+rectangle "Elastic Agent\n(SNMP / NetFlow)\n<<system-software>>" as elastic_agent <<system-software>>
+
+' =========================================================================
+' 3. STORAGE LAYER (CENTER-RIGHT)
+' =========================================================================
+rectangle "Elasticsearch Cluster\n<<node>>" as es_cluster <<node>>
+
+' =========================================================================
+' 4. VISUALIZATION LAYER (RIGHT)
+' =========================================================================
+rectangle "Kibana Dashboards\n<<business-interface>>" as kibana <<business-interface>>
+
+' =========================================================================
+' RELATIONSHIPS & DATA FLOWS (LEFT TO RIGHT)
+' =========================================================================
+
+' SAP Data Path
+sap --> apm : "Sends traces"
+sap ..> sap_metrics
+sap_metrics ..> apm
+apm --> es_cluster : "Indexes data"
+
+' Network Data Path
+router --> elastic_agent : "Streams telemetry"
+switch --> elastic_agent : "Streams traps"
+router ..> network_logs
+switch ..> network_logs
+network_logs ..> elastic_agent
+elastic_agent --> es_cluster : "Bulk uploads logs"
+
+' Read/Visualization Path
+es_cluster --> kibana : "Queries data"
+
+@endum
