@@ -1,0 +1,37 @@
+@startuml
+title UML Data Flow: FortiAnalyzer naar Externe Leverancier (Syslog)
+
+skinparam componentStyle uml2
+left to right direction
+
+cloud "Interne Bedrijfsinfrastructuur" {
+    [FortiGate / Managed Devices] as FortiGates
+    
+    node "Centraal Log Management" {
+        component "FortiAnalyzer\n(Log Forwarder)" as FAZ
+        database "Lokale Log Buffer\n(12GB Failover Buffer)" as FAZBuffer
+    }
+}
+
+cloud "Externe Leverancier Netwerk (Vendor)" {
+    node "Vendor Ingestie Server" {
+        component "Remote Syslog Daemon\n(rsyslog / Splunk)" as SyslogServer
+        database "Vendor SIEM / Log Store" as VendorSIEM
+    }
+}
+
+' Interfaces & Protocollen
+interface "FortiLink / OFTP" as INT_Internal
+interface "Syslog Protocol\n(Standard RFC 5424)" as INT_Syslog
+
+' Data Flows
+FortiGates --> INT_Internal : Verzendt ruwe security logs
+INT_Internal )- FAZ
+
+FAZ <--> FAZBuffer : Buffert logs bij netwerkuitval
+
+FAZ --( INT_Syslog : Directe log-forwarding\n(Port: 514 UDP/TCP of 6514 TLS)
+INT_Syslog - SyslogServer
+
+SyslogServer --> VendorSIEM : Parst, indexeert & slaat op
+@enduml

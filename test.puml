@@ -108,4 +108,51 @@ fortianalyzer ..> forti_logs : "Aggregates"
 vendor_repo --> sentinel : "Log Forwarder / API"
 fortianalyzer --> sentinel : "CEF / Syslog Forwarder"
 
+frame "Network Infrastructure" {
+    rectangle "FortiAnalyzer" as Action_FAZ
+    rectangle "Fox-IT" as 3rdParty_FoxIT
+    card "up/down\nhealth\ntest\ntest2\ntest3\ntest4" as test8
+    interface "Syslog Protocol" as INT_Syslog
+    () "lan1" as eth0
+    () "lan2" as eth1
+
+note top of Action_FAZ
+    FAZ Action
+    owned and
+    managed
+end note
+}
+
 @endum
+
+'-- List all sprites used in this diagram
+
+' @startuml
+' listsprite
+' @enduml
+
+' @startuml
+' ' --- Cloud Styling Parameters ---
+' skinparam backgroundcolor #FFFFFF
+' skinparam shadowalignment left
+' skinparam shadowing false
+
+' skinparam cloud {
+'     BackgroundColor #E8F4F8
+'     BorderColor #232F3E
+'     FontColor #232F3E
+'     FontSize 14
+' }
+
+' skinparam node {
+'     BackgroundColor #FFFFFF
+'     BorderColor #0073BB
+' }
+
+' ' --- Diagram ---
+' cloud "AWS Cloud" as aws {
+'     node "EC2 Instance" as ec2
+'     node "S3 Bucket" as s3
+'     ec2 -> s3 : Slaat data op
+' }
+' @endum
