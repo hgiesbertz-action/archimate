@@ -1,0 +1,103 @@
+@startuml test
+
+'--- INCLUDE ARCHIMAT LIBRARY ---
+!include <archimate/Archimate>
+
+' --- DEFAULT PARAMETERS ----
+skinparam roundcorner 5
+skinparam shadowing false
+top to bottom direction
+
+' --- OFFICIAL ARCHIMATE COLOR PALETTE ---
+!define BUSINESS_COLOR #FFF9C4
+!define APPLICATION_COLOR #B2EBF2
+!define TECHNOLOGY_COLOR #C8E6C9
+
+hide <<business-interface>> stereotype
+hide <<application-component>> stereotype
+hide <<data-object>> stereotype
+hide <<node>> stereotype
+hide <<device>> stereotype
+hide <<system-software>> stereotype
+hide <<artifact>> stereotype
+
+skinparam Rectangle {
+    BackgroundColor<<business-interface>> BUSINESS_COLOR
+    BackgroundColor<<application-component>> APPLICATION_COLOR
+    BackgroundColor<<data-object>> APPLICATION_COLOR
+    BackgroundColor<<node>> TECHNOLOGY_COLOR
+    BackgroundColor<<device>> TECHNOLOGY_COLOR
+    BackgroundColor<<system-software>> TECHNOLOGY_COLOR
+    BackgroundColor<<artifact>> TECHNOLOGY_COLOR
+    BorderColor #455A64
+    FontColor #212121
+}
+skinparam Component {
+    BackgroundColor<<business-interface>> BUSINESS_COLOR
+    BackgroundColor<<application-component>> APPLICATION_COLOR
+    BackgroundColor<<data-object>> APPLICATION_COLOR
+    BackgroundColor<<node>> TECHNOLOGY_COLOR
+    BackgroundColor<<device>> TECHNOLOGY_COLOR
+    BackgroundColor<<system-software>> TECHNOLOGY_COLOR
+    BackgroundColor<<artifact>> TECHNOLOGY_COLOR
+    BorderColor #455A64
+    FontColor #212121
+}
+skinparam Node {
+    BackgroundColor<<business-interface>> BUSINESS_COLOR
+    BackgroundColor<<application-component>> APPLICATION_COLOR
+    BackgroundColor<<data-object>> APPLICATION_COLOR
+    BackgroundColor<<node>> TECHNOLOGY_COLOR
+    BackgroundColor<<device>> TECHNOLOGY_COLOR
+    BackgroundColor<<system-software>> TECHNOLOGY_COLOR
+    BackgroundColor<<artifact>> TECHNOLOGY_COLOR
+    BorderColor #455A64
+    FontColor #212121
+}
+skinparam Package {
+    BackgroundColor #E8F5E9
+    BorderColor #81C784
+    FontColor #2E7D32
+}
+'==========================
+'--- START MAIN DIAGRAM ---
+'==========================
+title Centrale Identity Providers
+
+'=====================
+'--- LOGGING NODES ---
+'=====================
+
+'--- ACTION INTERNAL SYSTEMS---
+
+Boundary(IAM, "Identity & Access Management") {
+    Technology_Node(saas_SailPoint, "Sailpoint")
+    Package "Cisco ISE" {
+        Technology_Node(3rdp_CapGemini_CiscoISE_Core, "Cisco ISE Core", "Syslog / SNMP Ingest")
+    }
+    Technology_SystemSoftware(NW_LDAP,"NIaaS LDAP")
+    Package "ArubaClearpass" {
+        Technology_Node(3rdp_Centric_ArubaClearpass_Core, "Aruba Clearpass Core", "Syslog / SNMP Ingest")
+    }
+    Package "Azure EntraID" {
+    Technology_SystemSoftware(WP_ActiveDirectory,"Active Directory\nAction")
+    }
+}
+
+Business_Role(SysAdmin, "Systeembeheerder\n(Operations)")
+
+
+'=================================
+' --- INTERACTIONS / DATAFLOWS ---
+'=================================
+
+' INTER NW&S CONNECTIONS
+Rel_Serving_Down(saas_SailPoint, 3rdp_CapGemini_CiscoISE_Core,"SCIM")
+Rel_Serving_Down(saas_SailPoint, 3rdp_Centric_ArubaClearpass_Core, "SCIM")
+Rel_Serving_Down(saas_SailPoint, WP_ActiveDirectory, "SCIM")
+
+Rel_Flow_Right(SysAdmin, saas_SailPoint,)
+
+saas_SailPoint -[hidden]down-> NW_LDAP
+
+@endum

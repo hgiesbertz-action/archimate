@@ -1,85 +1,83 @@
+' @startuml
+' ' 1. Laad de officiële ArchiMate bibliotheek
+' !include <archimate/Archimate>
+
+' ' 2. Gebruik de macro als een container/node met accolades
+' Technology_Node(NetworkNode, "Network & Security") {
+    
+'     ' Sub-elementen binnen de node
+'     Technology_Device(NW_Firewall, "FortiGate")
+'     Technology_SystemSoftware(NW_Fortimanager, "FortiManager")
+'     Technology_SystemSoftware(NW_FortiAnalyzer, "FortiAnalyzer")
+'     Technology_SystemSoftware(IAM, "Active Directory / IAM")
+' }
+
+' ' Lay-out en relaties (ArchiMate stijl)
+' Rel_Flow_Down(NW_Fortimanager, NW_Firewall, "Pusht policies")
+' Rel_Flow_Down(NW_Firewall, NW_FortiAnalyzer, "Stuurt logs")
+
+' ' Horizontale uitlijning voor AD/IAM
+' NW_Firewall -[hidden]right-> IAM
+' Rel_Access_Right(NW_Firewall, IAM, "Checkt admins")
+
+' @endum
+' @startuml
+' ' 1. Laad de officiële ArchiMate bibliotheek
+' !include <archimate/Archimate>
+
+' ' --- 1. BUSINESS LAYER (Geel) ---
+' ' De menselijke rol die gebruik maakt van de monitoring
+' Business_Role(SysAdmin, "Systeembeheerder\n(Operations)")
+
+' ' --- 2. NETWORK & SECURITY CONTAINER ---
+' Boundary(NetworkNode, "Network & Security") {
+
+'     ' Applicatielaag (Blauw)
+'     Application_Component(NW_NagiosWeb, "Nagios Web\n(UI / Dashboards)")
+    
+'     ' Technologielaag (Groen)
+'     Technology_SystemSoftware(NW_NagiosCore, "Nagios Core\n(Monitoring Engine)")
+    
+'     ' --- RELATIES & STRUCTUUR ---
+    
+'     ' Nagios Core bedient Nagios Web (Doorgetrokken lijn omhoog)
+'     Rel_Serving_Up(NW_NagiosCore, NW_NagiosWeb, "Bedient met statusdata")
+' }
+
+' ' --- RELATIE VAN APPLICATIE NAAR GEBRUIKER ---
+' ' Nagios Web bedient de Systeembeheerder (Doorgetrokken lijn omhoog, buiten de node)
+' Rel_Serving_Up(NW_NagiosWeb, SysAdmin, "Toont status & alerts (HTTPS)")
+
+' @endum
+
 @startuml
-skinparam componentStyle rectangle
-skinparam BACKGROUND_COLOR #FFFFFF
-skinparam NodeBackgroundColor #F5F5F5
+!include <archimate/Archimate>
 
-title UML Componenten Diagram: Centrale Log Observabiliteit (Elastic)
+' --- ELEMENTEN ---
+Technology_SystemSoftware(FAZ, "FortiAnalyzer")
+Technology_SystemSoftware(SyslogServer, "Centrale Syslog Server")
 
-' --- BRONSECTOR / APPLICATIES (10+ Bronnen) ---
-cloud "Applicatie & Microservices" {
-  [Frontend Web App] as WebApp
-  [Backend Java API] as JavaAPI
-  [Mobile App Backend] as MobileAPI
-  [Legacy Monolith] as Legacy
+' De documentatie / parameterlijst als Artifact (Groen)
+Technology_Artifact(SyslogSpec, "Syslog RFC 5424 Parameters\n---\n* Facility\n* Severity\n* Hostname\n* MsgID\n* Custom Fortinet Fields")
+
+' --- RELATIES ---
+' De informatiestroom (gestippelde lijn voor Flow)
+Rel_Flow_Right(FAZ, SyslogServer, "Stuurt logs (Port 514)")
+
+' Koppel het parameter-document aan de stroom (associatie-lijn)
+Rel_Association(SyslogSpec, FAZ, "")
+@endum
+@startuml
+!include <archimate/Archimate>
+
+' FortiAnalyzer met daarin de specifieke parameter-output gedefinieerd
+Technology_SystemSoftware(FAZ, "FortiAnalyzer") {
+    Technology_Artifact(ParamSet, "FortiGate Log Schema\n(Syslog Payload)\n---\n- devid\n- vd\n- logid\n- type\n- subtype")
+    Technology_Artifact(SyslogSpec, "Syslog RFC 5424 Parameters\n---\n* Facility\n* Severity\n* Hostname\n---\n[[https://fortinet.com -> Open Fortinet Docs]]")
 }
 
-node "Infrastructuur & Cloud" {
-  [Kubernetes Clusters (K8s)] as K8s
-  [Linux / Windows Servers] as OS
-  [AWS CloudWatch / Activity Logs] as CloudLogs
-}
+Technology_SystemSoftware(SyslogServer, "Syslog Server")
 
-node "Netwerk & Beveiliging" {
-  [Cisco Firewalls] as Firewall
-  [Nginx / HAProxy Load Balancers] as LoadBalancer
-  [Active Directory / IAM] as IAM
-  [Database Audit Logs (SQL/NoSQL)] as DBLogs
-}
-
-' --- SHIPPERS / AGENTS LAAG ---
-node "Log Shippers / Collection" {
-  [Elastic Agent / Filebeat] as AgentApp
-  [FluentBit / Logstash Agent] as AgentInfra
-  [Syslog Daemon] as Syslog
-}
-
-' --- INGESTION & PROCESSING ---
-queue "Message Broker (Optioneel voor Buffering)" as Queue {
-  [Apache Kafka / Logstash Queue] as IngestQueue
-}
-
-node "Centrale Verwerking" {
-  [Logstash Pipelines] as Logstash
-}
-
-' --- ELASTIC OBSERVABILITY PLATFORM (Gecorrigeerd naar node) ---
-node "Elastic Observability Platform (Single Instance/Cluster)" {
-  database "Elasticsearch Cluster" as ES {
-    [Data Streams / Indices] as Indices
-    [ILM / Retentie Policies] as ILM
-  }
-  [Kibana Dashboards] as Kibana
-  [Elastic APM / Fleet Server] as Fleet
-}
-
-' --- INTERACTIES / DATASTROMEN ---
-
-' Koppelingen van bronnen naar agents
-WebApp --> AgentApp : Log4j / JSON
-JavaAPI --> AgentApp
-MobileAPI --> AgentApp
-Legacy --> AgentApp
-
-K8s --> AgentInfra : Container STDOUT
-OS --> AgentInfra : Auth.log / Syslog
-CloudLogs --> AgentInfra : API Pull
-
-Firewall --> Syslog : UDP/TCP 514
-LoadBalancer --> AgentInfra : Access Logs
-IAM --> AgentInfra
-DBLogs --> AgentApp
-
-' Van Agents naar Ingestion
-AgentApp --> IngestQueue : Beats Protocol (Lumberjack)
-AgentInfra --> IngestQueue : HTTPS / Kafka Topic
-Syslog --> Logstash : Direct Syslog Ingest
-
-' Van Queue naar Elastic
-IngestQueue --> Logstash : Verbruikt berichten
-Logstash --> ES : Geformatteerde JSON (Bulk API)
-Fleet --> AgentApp : Centraal Beheer & Policies
-
-' User Interface
-Kibana --> ES : Zoeken & Visualiseren
-
-@enduml
+' Relaties
+Rel_Flow_Right(FAZ, SyslogServer, "Verzendt syslog logs")
+@endum

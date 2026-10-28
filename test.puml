@@ -127,32 +127,6 @@ end note
 
 '-- List all sprites used in this diagram
 
-' @startuml
-' listsprite
-' @enduml
-
-' @startuml
-' ' --- Cloud Styling Parameters ---
-' skinparam backgroundcolor #FFFFFF
-' skinparam shadowalignment left
-' skinparam shadowing false
-
-' skinparam cloud {
-'     BackgroundColor #E8F4F8
-'     BorderColor #232F3E
-'     FontColor #232F3E
-'     FontSize 14
-' }
-
-' skinparam node {
-'     BackgroundColor #FFFFFF
-'     BorderColor #0073BB
-' }
-
-' ' --- Diagram ---
-' cloud "AWS Cloud" as aws {
-'     node "EC2 Instance" as ec2
-'     node "S3 Bucket" as s3
-'     ec2 -> s3 : Slaat data op
-' }
-' @endum
+@startuml
+listsprite
+@enduml

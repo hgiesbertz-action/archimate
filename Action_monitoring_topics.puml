@@ -6,9 +6,7 @@
 ' --- DEFAULT PARAMETERS ----
 skinparam roundcorner 5
 skinparam shadowing false
-' skinparam componentStyle rectangle
-' skinparam BACKGROUND_COLOR #FFFFFF
-' skinparam NodeBackgroundColor #F5F5F5
+top to bottom direction
 
 ' --- OFFICIAL ARCHIMATE COLOR PALETTE ---
 !define BUSINESS_COLOR #FFF9C4
@@ -61,99 +59,190 @@ skinparam Package {
     BorderColor #81C784
     FontColor #2E7D32
 }
-
+'==========================
 '--- START MAIN DIAGRAM ---
+'==========================
 title Centrale Log Observabiliteit (Elastic)
 
-' --- BRONSECTOR / APPLICATIES (10+ Bronnen) ---
-cloud "Applicatie & Microservices" as ApplicationCloud {
-  [Frontend Web App] as WebApp <<application-component>>
-  [Backend Java API] as JavaAPI
-  [Mobile App Backend] as MobileAPI
-  [Legacy Monolith] as Legacy
+'=====================
+'--- LOGGING NODES ---
+'=====================
+
+'--- ACTION INTERNAL SYSTEMS---
+
+Boundary(ACT_Internal, "Action Internal systems") {
+
+    Boundary(WorkplaceNode, "Infrastructuur & Cloud") {
+        Technology_SystemSoftware(WP_Servers, "Linux / Windows Servers")
+        Technology_SystemSoftware(WP_AWS, "AWS CloudWatch / Activity Logs")
+    }
+    
+    Boundary(NetworkNode, "Network & Security") {
+        Technology_Device(NW_FortiGate, "FortiGate") {
+            Technology_Artifact(ParamSet, "FortiGate Log\n---\n- devid\n- vd\n- logid\n- type\n- subtype")
+        }
+        Technology_SystemSoftware(NW_FortiManager, "FortiManager")
+        Technology_SystemSoftware(NW_FortiAnalyzer, "FortiAnalyzer")
+        Technology_Device(NW_NIaaS_MPC, "DNS/DHCP/NTP")
+    }
+
+    Boundary(StoreNode, "Store Infrastructure") {
+        Technology_Device(ST_FortiGate, "FortiGate Edge")
+        Technology_Device(ST_Switches, "Store LAN Switches")
+        Technology_Device(ST_APs, "Store WiFi Access Points")
+    }
+    Boundary(DCNode, "Distribution Center Infrastructure") {
+        Technology_Device(DC_FortiGate, "FortiGate Edge")
+        Technology_Device(DC_Switches, "Distribution Center LAN Switches")
+        Technology_Device(DC_APs, "Distribution Center WiFi Access Points")
+    }
+    ' --- SHIPPERS / AGENTS ---
+    Boundary(CollectionNode, "Log Shippers / Collection") {
+        Technology_SystemSoftware(ElasticAgent, "Elastic Agent & Beats", "Metric & Packet Collection")
+        [FluentBit / Logstash Agent] as AgentInfra
+        [Syslog Daemon] as Syslog
+    }
 }
 
-node "Infrastructuur & Cloud" as InfraStructureNode {
-  [Active Directory / IAM] as IAM <<system-software>>
-  [Kubernetes Clusters (K8s)] as K8s
-  [Linux / Windows Servers] as OS
-  [AWS CloudWatch / Activity Logs] as CloudLogs
+'========================
+'--- External LOGGING ---
+'========================
+
+Boundary(3rdparty, "3rd Party", "External Monitoring & Logging") {
+    Boundary(3rdp_GTT, "GTT", "Network Monitoring") {
+        Package "GTT Envision" {
+            Technology_Node(3rdp_GTT_Envision_Core, "GTT Envision Core", "Syslog / SNMP Ingest")
+            Application_Component(3rdp_GTT_Envision_Web, "GTT Envision Web", "Network Monitoring")
+        }
+    }
+    Boundary(3rdp_Centric, "Centric", "Network Monitoring") {
+        Package "Nagios" {
+            Technology_Node(3rdp_Centric_Nagios_Core, "Nagios Core (14)", "Syslog / SNMP Ingest")
+            Application_Component(3rdp_Centric_Nagios_Web, "Nagios Web", "Network Monitoring")
+        }
+        Package "ArubaCentral" {
+            Technology_Node(3rdp_Centric_ArubaC_Core, "Aruba Central Core", "Syslog / SNMP Ingest")
+            Application_Component(3rdp_Centric_ArubaC_Web, "Aruba Central Web", "Network Monitoring")
+        }       
+    }
+    Boundary(3rdp_CapGemini, "CapGemini", "Network Monitoring") {
+        Package "Zabbix" {
+            Technology_Node(3rdp_CapGemini_Zabbix_Core, "Zabbix Core (14)", "Syslog / SNMP Ingest")
+            Application_Component(3rdp_CapGemini_Zabbix_Web, "Zabbix Web", "Network Monitoring")
+        }
+        Package "CloudIQ" {
+            Technology_Node(3rdp_CapGemini_CloudIQ_Core, "CloudIQ Core", "Syslog / SNMP Ingest")
+            Application_Component(3rdp_CapGemini_CloudIQ_Web, "CloudIQ Web", "Network Monitoring")
+        }
+        Package "FortiProxy" {
+            Technology_Node(3rdp_CapGemini_FortiProxy_Core, "FortiProxy Core", "Syslog / SNMP Ingest")
+            Application_Component(3rdp_CapGemini_FortiProxy_Web, "FortiProxy Web", "Network Monitoring")
+        } 
+        Package "HPOneView" {
+            Technology_Node(3rdp_CapGemini_HPOneview_Core, "HPOneview Core", "CCTV hardware monitoring SNMP")
+        }
+        Package "CiscoCX" {
+            Technology_Node(3rdp_CapGemini_CiscoCX_Core, "CiscoCSCP/CX Core", "Inventory SNMP/Login")
+        }
+    }
+    Boundary(3rdp_FoxIT, "FOX-IT", "Evaluation & Forensics") {
+        Package "FoxIT" {
+            Technology_Node(3rdp_FoxIT, "FOX-IT", "Evaluation & Forensics")
+        }
+    }
+    Boundary(3rdp_Sentinel, "Microsoft Sentinel", "SIEM & Security Analytics") {
+        Package "Microsoft Sentinel" {
+            Technology_Node(3rdp_MS_Sentinel, "Microsoft Sentinel", "SIEM & Security Analytics")
+        }
+    }
+    Boundary(3rdp_Routz, "Routz", "NIaaS / Network Monitoring") {
+        Package "Solarwinds" {
+            Technology_Node(3rdp_Routz_Solarwinds, "Solarwinds", "Network Monitoring"){
+                Technology_Artifact(3rdp_Routz_Solarwinds_ATF, "icmp\ncpu\nmem")
+            }
+        }
+    }
 }
 
-node "Network & Security" as NetworkNode {
-  [FortiGate] as NW_Firewall <<device>>
-  [FortiManager] as NW_Fortimanager <<system-software>>
-  [FortiAnalyzer] as NW_FortiAnalyzer <<system-software>>
- 
+Boundary(IAM, "Identity & Access Management") {
+        Package "Cisco ISE" {
+            Technology_Node(3rdp_CapGemini_CiscoISE_Core, "Cisco ISE Core", "Syslog / SNMP Ingest")
+        }
+        Technology_SystemSoftware(NW_LDAP,"NIaaS LDAP")
+        Package "ArubaClearpass" {
+            Technology_Node(3rdp_Centric_ArubaClearpass_Core, "Aruba Clearpass Core", "Syslog / SNMP Ingest")
+        }
+        Technology_SystemSoftware(WP_ActiveDirectory,"Active Directory\nAction")
 }
 
-' --- SHIPPERS / AGENTS LAAG ---
-node "Log Shippers / Collection" as CollectionNode {
-  Technology_SystemSoftware(elasticAgent, "Elastic Agent & Beats", "Metric & Packet Collection")
-  [Elastic Agent / Filebeat] as AgentApp 
-  [FluentBit / Logstash Agent] as AgentInfra
-  [Syslog Daemon] as Syslog
+Business_Role(SysAdmin, "Systeembeheerder\n(Operations)")
+
+'--- SaaS ---
+Boundary(SaaS, "SaaS / Cloud Services") {
+    Technology_Node(SaaSNode, "SaaS / Cloud Services") {
+        Application_Component(SaaS_Office365, "Microsoft 365", "Email & Collaboration")
+        Application_Component(SaaS_Salesforce, "Salesforce", "CRM & Customer Data")
+        Application_Component(SaaS_SAP, "SAP S/4HANA", "ERP & Business Processes")
+    }
 }
 
-' --- INGESTION & PROCESSING ---
-queue "Message Broker (Optioneel voor Buffering)" as Queue {
-  [Logstash] as IngestQueue
+'=======================================
+' --- ELASTIC OBSERVABILITY PLATFORM ---
+'=======================================
+
+Boundary(ElasticNode, "Elastic Observability Platform") {
+    ' --- INGESTION & PROCESSING ---
+    node "Log Ingestion & Processing" as IngestNode {
+        [Logstash Pipelines] as Logstash
+    }
+    database "Elasticsearch Cluster" as ES {
+        Technology_Node(Indices, "Elasticsearch", "Document Storage, Indexing")
+    }
+    Business_Actor(Kibana, "Kibana Dashboards", "Visualization & Analytics")
 }
 
-node "Centrale Verwerking" {
-  [Logstash Pipelines] as Logstash
-}
+'=================================
+' --- INTERACTIONS / DATAFLOWS ---
+'=================================
 
-'--- EXTERNAL SIEM ---
+' INTER NW&S CONNECTIONS
+Rel_Flow_Down(NW_FortiManager, NW_FortiGate, "policy/config")
+Rel_Flow_Down(NW_FortiGate, NW_FortiAnalyzer, "log")
+Rel_Flow_Right(NW_NIaaS_MPC,NW_NIaaS_MPC, "local log")
+' INTER STORES CONNECTIONS
+Rel_Flow_Down(ST_FortiGate, ST_Switches, "LAN Traffic")
+Rel_Flow_Right(ST_Switches, ST_APs, "WiFi Traffic")
+' INTER MSP CONNECTIONS
+Rel_Serving_Down(3rdp_GTT_Envision_Core, 3rdp_GTT_Envision_Web)
+Rel_Serving_Down(3rdp_GTT_Envision_Web, SysAdmin)
+Rel_Flow(3rdp_GTT_Envision_Core, NW_FortiAnalyzer, "Syslog fwd")
+Rel_Serving_Down(3rdp_Centric_Nagios_Core, 3rdp_Centric_Nagios_Web)
+Rel_Serving_Down(3rdp_Centric_ArubaC_Core, 3rdp_Centric_ArubaC_Web)
+Rel_Serving_Down(3rdp_CapGemini_Zabbix_Core, 3rdp_CapGemini_Zabbix_Web)
+Rel_Serving_Down(3rdp_CapGemini_CloudIQ_Core, 3rdp_CapGemini_CloudIQ_Web)
+Rel_Serving_Down(3rdp_CapGemini_FortiProxy_Core, 3rdp_CapGemini_FortiProxy_Web)
 
-rectangle "3rd Party" {
-    Technology_Node(3rdParty_FoxIT, "FOX-IT", "Evaluation & Forensics")
-    Technology_Node(3rdParty_GTT, "GTT Logging", "Network Monitoring")
-    Technology_Node(3rdParty_Sentinel, "Microsoft Sentinel", "SIEM & Security Analytics")
-}
+' NW&S to EXTERNAL
+Rel_Flow_Down(NW_FortiManager, 3rdp_Routz_Solarwinds)
+Rel_Flow_Down(NW_FortiAnalyzer, 3rdp_Routz_Solarwinds)
+Rel_Flow_Down(NW_FortiGate, 3rdp_Routz_Solarwinds)
 
-' --- ELASTIC OBSERVABILITY PLATFORM (Gecorrigeerd naar node) ---
-node "Elastic Observability Platform (Single Instance/Cluster)" {
-  database "Elasticsearch Cluster" as ES {
-    [Data Streams / Indices] as Indices
-  }
-  Technology_Node(elasticStack, "Elasticsearch & Kibana", "Storage, Indexing & Visualization")
-  Application_Component(apmServer, "APM Server & RUM", "Application & End-User Tracing")
-  Business_Actor(Kibana, "Kibana Dashboards", "Visualization & Analytics")
-}
+' AGENTS / METRICS
+ST_FortiGate --> 3rdp_GTT_Envision_Core: UDP/TCP 514
 
-' --- INTERACTIES / DATASTROMEN ---
-
-'blokken fixeren
-IngestQueue --[hidden]-- Logstash
-Logstash --[hidden]-- ES
-
-' Koppelingen van bronnen naar agents
-WebApp -down-> AgentApp : Log4j / JSON
-JavaAPI -down-> AgentApp
-MobileAPI -down-> AgentApp
-Legacy -down-> AgentApp
-K8s --> AgentInfra : Container STDOUT
-OS --> AgentInfra : Auth.log / Syslog
-CloudLogs --> AgentInfra : API Pull
-
-NW_Firewall --> NW_FortiAnalyzer : Syslog
-NW_Firewall --> 3rdParty_GTT : UDP/TCP 514
-3rdParty_GTT .. NW_FortiAnalyzer : Syslog Forwarding
-IAM --> AgentInfra
-
+ACT_Internal -[hidden]down-> ElasticNode
+' OS --> AgentInfra : Auth.log / Syslog
+' CloudLogs --> AgentInfra : API Pull
 
 ' Van Agents naar Ingestion
-AgentApp --> IngestQueue : Beats Protocol (Lumberjack)
-AgentInfra --> IngestQueue : HTTPS / Kafka Topic
+ElasticAgent --> Logstash : Beats Protocol (Lumberjack)
+AgentInfra --> Logstash : HTTPS / Kafka Topic
 Syslog --> Logstash : Direct Syslog Ingest
 
 ' Van Queue naar Elastic
-IngestQueue --> Logstash : Verbruikt berichten
-Logstash --> ES : Geformatteerde JSON (Bulk API)
+Logstash -down-> ES : Formatted JSON (Bulk API)
 
 ' User Interface
-Kibana --> ES : Zoeken & Visualiseren
-
+Rel_Serving_Right(Kibana, ES, "Search / Dashboards")
 
 @endum
